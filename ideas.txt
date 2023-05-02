@@ -1,0 +1,9 @@
+Tasks:
+-ability to schedule multiple tracks
+-ability to schedule repeating slots over selected days
+-ability to save/load schedules beyond the current app instance
+-ability to set shuffle/repeat/volume for scheduled plays
+-ability to specify which players to use for scheduled plays (excluded players should be paused?)
+-ability to edit and delete scheduled plays
+-prevent user from scheduling multiple plays at the same time
+-nice aesthetics
