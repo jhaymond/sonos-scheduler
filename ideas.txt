@@ -1,5 +1,6 @@
 Tasks:
 -ability to schedule multiple tracks
+-ability to schedule playables other than just tracks (playlists, artists, albums, stations)
 -ability to schedule repeating slots over selected days
 -ability to save/load schedules beyond the current app instance
 -ability to set shuffle/repeat/volume for scheduled plays
@@ -7,3 +8,4 @@ Tasks:
 -ability to edit and delete scheduled plays
 -prevent user from scheduling multiple plays at the same time
 -nice aesthetics
+-add readme

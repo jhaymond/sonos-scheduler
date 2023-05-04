@@ -1,17 +1,29 @@
 <template>
-  <div class="hello">
-    <div>
-      <input v-model="query" type="text" @input="updateResults"/>
-      <input v-model="scheduledTime" type="time"/>
-      <input type="submit" @click="schedulePlayable"/>
+  <fieldset class="fieldset">
+    <legend>Add to your schedule</legend>
+    <div class="search-container">
+      <input placeholder="Search Spotify" v-model="query" type="text" @input="updateResults" @blur="searchFocused = false" @focus="searchFocused = true" data-toggle="suggestionsDropdown"/>
+      <div class="dropdown-pane" :class="{ 'is-open': showSuggestions }" id="suggestionsDropdown" data-dropdown>
+      <ul class="vertical menu">
+        <li v-for="suggestion in searchSuggestions" :key="suggestion.id">
+          <a href="#" @click="selectedPlayable = suggestion">{{ suggestion.name }} - {{ suggestion.artists[0].name }}</a>
+        </li>
+      </ul>
+      </div>
     </div>
-    <ul v-if="searchSuggestions.length">
-      <li v-for="suggestion in searchSuggestions" :key="suggestion.id">
-        <a @click="selectedPlayable = suggestion">{{ suggestion.name }} - {{ suggestion.artists[0].name }}</a>
-      </li>
-    </ul>
+    <div class="grid-x grid-margin-x">
+      <input class="cell small-4 large-2" v-model="scheduledTime" type="time"/>
+      <div class="cell small-6 large-8 button-group no-gaps">
+        <a class="button primary" v-for="day in days" :key="day" :class="{ 'hollow': !day.selected }" @click="day.selected = !day.selected">
+          {{ day.initial }}
+        </a>
+      </div>
+      <div class="cell small-2 large-2">
+        <input class="button float-right" type="submit" value="Schedule" @click="schedulePlayable"/>
+      </div>
+    </div>
     <input type="hidden" :value="selectedPlayable == null ? null : selectedPlayable.uri"/>
-  </div>
+  </fieldset>
 </template>
 
 <script>
@@ -23,10 +35,25 @@ export default {
   data() {
     return {
       query: '',
+      searchFocused: false,
       lastQueryTime: 0,
       searchSuggestions: [],
       selectedPlayable: null,
-      scheduledTime: null
+      scheduledTime: null,
+      days: [
+        { initial: "S", selected: false },
+        { initial: "M", selected: false },
+        { initial: "T", selected: false },
+        { initial: "W", selected: false },
+        { initial: "T", selected: false },
+        { initial: "F", selected: false },
+        { initial: "S", selected: false },
+      ]
+    }
+  },
+  computed: {
+    showSuggestions() {
+      return this.query.length > 0 && this.searchSuggestions.length > 0 && this.selectedPlayable === null && this.searchFocused;
     }
   },
   methods: {
@@ -73,25 +100,22 @@ export default {
       const response = await api.sonosApi.get('/zones');
       const data = await response.data;
       return data.flatMap(zone => zone.members.map(member => member.roomName));
-    }
+    },
   }
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
+    .search-container {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    
+    #suggestionsDropdown {
+      width: 100%;
+      position: absolute;
+      top: 100%;
+    }
 </style>
