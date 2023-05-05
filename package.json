@@ -11,6 +11,7 @@
     "axios": "^1.4.0",
     "core-js": "^3.8.3",
     "foundation-sites": "^6.7.5",
+    "jquery": "^3.6.4",
     "node-schedule": "^2.1.1",
     "spotify-web-api-node": "^5.0.2",
     "vue": "^3.2.13"

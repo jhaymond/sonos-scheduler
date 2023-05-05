@@ -1,5 +1,4 @@
 Tasks:
--ability to schedule multiple tracks
 -ability to schedule playables other than just tracks (playlists, artists, albums, stations)
 -ability to schedule repeating slots over selected days
 -ability to save/load schedules beyond the current app instance
