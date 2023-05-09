@@ -10,6 +10,7 @@
 <script>
 import ScheduleForm from './components/schedule-form.vue';
 import ScheduleList from './components/schedule-list.vue';
+import api from './scripts/api.js';
 
 export default {
   name: 'App',
@@ -20,14 +21,21 @@ export default {
   data() {
     return {
       scheduledPlayables: []
-      // todo: capture new scheduledPlayables emitted by the form and add them to the list
       // todo: pre-fill scheduledPlayables from a saved list of playables the user already scheduled
     };
   },
   methods: {
     addToSchedule(newScheduledPlay) {
       this.scheduledPlayables.push(newScheduledPlay);
+      this.updateSaveFile();
+    },
+    updateSaveFile() {
+      api.localApi.post('/save', this.scheduledPlayables);
     }
+  },
+  async mounted() {
+    var response = await api.localApi.get('/load');
+    this.scheduledPlayables = response.data;
   }
 }
 </script>

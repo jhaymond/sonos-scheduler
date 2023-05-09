@@ -30,15 +30,15 @@ export default {
   data() {
     return {
       selectedPlayable: null,
-      scheduledTime: new Date().getHours() + ':' + new Date().getMinutes(),
+      scheduledTime: new Date().getHours().toString().padStart(2, '0') + ':' + new Date().getMinutes().toString().padStart(2, '0'),
       days: [
-        { initial: "S", selected: false },
+        { initial: "Su", selected: false },
         { initial: "M", selected: false },
-        { initial: "T", selected: false },
+        { initial: "Tu", selected: false },
         { initial: "W", selected: false },
-        { initial: "T", selected: false },
+        { initial: "Th", selected: false },
         { initial: "F", selected: false },
-        { initial: "S", selected: false },
+        { initial: "Sa", selected: false },
       ]
     }
   },
@@ -50,6 +50,7 @@ export default {
       const [playHour, playMinute] = this.scheduledTime.split(':').map(Number);
       const now = new Date();
       const playDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), playHour, playMinute, 0);
+      const playDays = this.days.filter(d => d.selected).map(d => d.initial);
       const selectedPlayable = JSON.parse(JSON.stringify(this.selectedPlayable)); // copy over so we don't lose it when the form is cleared
 
       // If the scheduled time has already passed, schedule for the next day
@@ -57,7 +58,9 @@ export default {
         playDate.setDate(playDate.getDate() + 1);
       }
 
-      this.$emit("submit", { playable: selectedPlayable, time: this.scheduledTime });
+
+
+      this.$emit("submit", { playable: selectedPlayable, time: this.scheduledTime, days: playDays });
 
       this.clearForm();
 
@@ -68,7 +71,7 @@ export default {
       });
     },
     clearForm() {
-      this.scheduledTime = new Date().getHours() + ':' + new Date().getMinutes();
+      this.scheduledTime = new Date().getHours().toString().padStart(2, '0') + ':' + new Date().getMinutes().toString().padStart(2, '0');
       this.days = [
         { initial: "S", selected: false },
         { initial: "M", selected: false },

@@ -1,7 +1,7 @@
 <template>
     <div>
         <div v-for="schedule in schedules" :key="schedule" class="card">
-            {{ schedule.playable.name }} @ {{ schedule.time }}
+            {{ schedule.playable.name }} @ {{ schedule.time }} ({{ schedule.days.join('-') }})
         </div>
     </div>
 </template>
