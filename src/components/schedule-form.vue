@@ -9,6 +9,9 @@
           {{ day.initial }}
         </a>
       </div>
+      <select v-model="selectedDevices" multiple>
+        <option v-for="device in devices" :key="device">{{ device }}</option>
+      </select>
       <div class="cell small-2 large-2">
         <input class="button float-right" type="submit" value="Schedule" @click="schedulePlayable"/>
       </div>
@@ -18,6 +21,7 @@
 
 <script>
 import PlayableSearch from './playable-search.vue';
+import api from '../scripts/api.js';
 
 export default {
   name: 'ScheduleForm',
@@ -28,7 +32,8 @@ export default {
   data() {
     return {
       selectedPlayable: null,
-      scheduledTime: new Date().getHours().toString().padStart(2, '0') + ':' + new Date().getMinutes().toString().padStart(2, '0'),
+      scheduledTime: null,
+      selectedDevices: [],
       days: [
         { initial: 'Su', selected: false },
         { initial: 'M', selected: false },
@@ -37,7 +42,8 @@ export default {
         { initial: 'Th', selected: false },
         { initial: 'F', selected: false },
         { initial: 'Sa', selected: false },
-      ]
+      ],
+      devices: null
     }
   },
   methods: {
@@ -48,11 +54,12 @@ export default {
       const playDays = this.days.filter(d => d.selected).map(d => d.initial);
       const selectedPlayable = JSON.parse(JSON.stringify(this.selectedPlayable)); // copy over so we don't lose it when the form is cleared
 
-      this.$emit("submit", { playable: selectedPlayable, time: this.scheduledTime, days: playDays });
+      this.$emit("submit", { playable: selectedPlayable, time: this.scheduledTime, days: playDays, devices: [...this.selectedDevices] });
       this.clearForm();
     },
     clearForm() {
-      this.scheduledTime = new Date().getHours().toString().padStart(2, '0') + ':' + new Date().getMinutes().toString().padStart(2, '0');
+      this.scheduledTime = null;
+      this.selectedDevices = [];
       this.days = [
         { initial: 'Su', selected: false },
         { initial: 'M', selected: false },
@@ -63,7 +70,15 @@ export default {
         { initial: 'Sa', selected: false },
       ];
       this.$refs.searchBar.clear();
+    },
+    async getDevices() {
+      const response = await api.sonosApi.get('/zones');
+      const data = await response.data;
+      return data.flatMap(zone => zone.members.map(member => member.roomName));
     }
+  },
+  async mounted() {
+    this.devices = await this.getDevices();
   }
 }
 </script>

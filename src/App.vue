@@ -37,7 +37,7 @@ export default {
       api.localApi.post('/save', this.scheduledPlayables);
     },
     async schedulerCallback(scheduleItem) {
-      await this.playOnDevices(await this.getDevices(), scheduleItem);
+      await this.playOnDevices(scheduleItem);
       if (scheduleItem.days.length > 0) {
         scheduleItem.nextPlayDate = this.getNextScheduledTime(scheduleItem);
         this.updateSaveFile();
@@ -56,24 +56,24 @@ export default {
 
       return playDate;
     },
-    async playOnDevices(devices, scheduleItem) {
-      const groupCore = devices[0];
-      
-      for (var i = 1; i < devices.length; ++i)
-        api.sonosApi.get(`/${devices[i]}/join/${groupCore}`); // todo: remove devices that aren't part of the group
-
+    async playOnDevices(scheduleItem) {
+      const groupCore = scheduleItem.devices[0];
       const response = await api.sonosApi.get(`/${groupCore}/state`);
 
       if (response.data.playbackState === 'PLAYING')
-        setTimeout((response.data.currentTrack.duration - response.data.elapsedTime) * 1000);
+        await new Promise(resolve => setTimeout(resolve, (response.data.currentTrack.duration - response.data.elapsedTime) * 1000));
 
-      await api.sonosApi.get(`${groupCore}/clearqueue`);
+      if (response.data.trackNo > 0)
+        await api.sonosApi.get(`${groupCore}/clearqueue`);      
+
+      for (var i = 0; i < scheduleItem.devices.length; ++i)
+      {
+        await api.sonosApi.get(`/${scheduleItem.devices[i]}/leave`);
+        if (i != 0)
+          api.sonosApi.get(`/${scheduleItem.devices[i]}/join/${groupCore}`); // todo: remove devices that aren't part of the group
+      }
+
       api.sonosApi.get(`/${groupCore}/spotify/now/${scheduleItem.playable.uri}`);
-    },
-    async getDevices() {
-      const response = await api.sonosApi.get('/zones');
-      const data = await response.data;
-      return data.flatMap(zone => zone.members.map(member => member.roomName));
     }
   },
   async mounted() {
