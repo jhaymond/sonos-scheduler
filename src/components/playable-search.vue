@@ -3,9 +3,7 @@
         <input v-if="!selectedPlayable" placeholder="Search Spotify" v-model="query" type="text" @input="updateResults" />
         <div v-else class="callout" data-closable>
             <button class="close-button" @click="clear()" type="button" data-close>&times;</button>
-            <TrackSuggestion :playable="selectedPlayable" v-if="selectedPlayable.category === 'tracks'" />
-            <AlbumSuggestion :playable="selectedPlayable" v-if="selectedPlayable.category === 'albums'" />
-            <PlaylistSuggestion :playable="selectedPlayable" v-if="selectedPlayable.category === 'playlists'" />
+            <PlayableDisplay :playable="selectedPlayable" :type="selectedPlayable.category" />
         </div>
 
         <div class="dropdown-pane" :class="{ 'is-open': showSuggestions }" id="suggestionsDropdown">
@@ -14,9 +12,7 @@
                 <ul class="vertical menu">
                     <li v-for="suggestion in searchSuggestionsByCategory[category]" :key="suggestion.id">
                         <div @click="updateSelection(suggestion, category)">
-                            <TrackSuggestion :playable="suggestion" v-if="category === 'tracks'" />
-                            <AlbumSuggestion :playable="suggestion" v-if="category === 'albums'" />
-                            <PlaylistSuggestion :playable="suggestion" v-if="category === 'playlists'" />
+                            <PlayableDisplay class="search-suggestion" :playable="suggestion" :type="category" />
                         </div>
                     </li>
                 </ul>
@@ -27,17 +23,13 @@
 
 <script>
 import api from '../scripts/api.js';
-import TrackSuggestion from './track-suggestion.vue';
-import AlbumSuggestion from './album-suggestion.vue';
-import PlaylistSuggestion from './playlist-suggestion.vue';
+import PlayableDisplay from './playable-display.vue';
 
 export default {
     name: "PlayableSearch",
     emits: ['input'],
     components: {
-        TrackSuggestion,
-        AlbumSuggestion,
-        PlaylistSuggestion
+        PlayableDisplay
     },
     data() {
         return {
@@ -76,7 +68,7 @@ export default {
             if (this.query.length > 0) {
                 if (Date.now() - this.lastQueryTime > 300) { // debounce
                     this.lastQueryTime = Date.now();
-                    var response = await api.spotifyApi.search(this.query, ['track', 'album', 'playlist'], { limit: 4 });
+                    var response = await api.spotifyApi.search(this.query, ['track', 'album', 'playlist'], { limit: 3 });
                     
                     for(var key of Object.keys(response.body)) {
                         this.searchSuggestionsByCategory[key] = response.body[key].items;
@@ -99,6 +91,18 @@ export default {
       display: flex;
       flex-direction: column;
       position: relative;
+    }
+
+    .search-suggestion {
+        display: flex;
+        align-items: center;
+        padding: 5px;
+        cursor: pointer;
+        transition: background-color 0.1s;
+    }
+
+    .search-suggestion:hover {
+        background-color: #e0e0e0;
     }
     
     #suggestionsDropdown {
