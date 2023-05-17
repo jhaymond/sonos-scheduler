@@ -3,7 +3,7 @@
     <ScheduleForm @submit="addToSchedule" class="cell small-6 small-offset-3"/>
   </div>
   <div class="grid-x grid-margin-x">
-    <ScheduleList :schedules="scheduledPlayables" class="cell small-6 small-offset-3"/>
+    <ScheduleList :schedules="scheduledPlayables" @delete="removeFromSchedule" class="cell small-6 small-offset-3"/>
   </div>
 </template>
 
@@ -27,14 +27,31 @@ export default {
   },
   methods: {
     addToSchedule(newScheduledPlay) {
-      newScheduledPlay.nextPlayDate = this.getNextScheduledTime(newScheduledPlay);
-      this.scheduledPlayables.push(newScheduledPlay);
+      if (!this.isOverlap(newScheduledPlay)) {
+        newScheduledPlay.nextPlayDate = this.getNextScheduledTime(newScheduledPlay);
+        this.scheduledPlayables.push(newScheduledPlay);
 
-      this.updateSaveFile();
-      this.scheduledJobs.push(schedule.scheduleJob(newScheduledPlay.nextPlayDate, this.schedulerCallback.bind(null, newScheduledPlay)));
+        this.updateSaveFile();
+        this.scheduledJobs.push(schedule.scheduleJob(newScheduledPlay.nextPlayDate, this.schedulerCallback.bind(null, newScheduledPlay)));
+      } else {
+        alert("There is already an item scheduled for that time. If you would like to play something different, please edit or remove the item previously scheduled.")
+      }
+    },
+    removeFromSchedule(scheduledPlay) {
+        this.scheduledPlayables.splice(this.scheduledPlayables.findIndex(p => p.time === scheduledPlay.time && p.days === scheduledPlay.days), 1);
+        this.updateSaveFile();
     },
     updateSaveFile() {
       api.localApi.post('/save', this.scheduledPlayables);
+    },
+    isOverlap(newScheduledPlay) {
+      return this.scheduledPlayables.findIndex(function (p) {
+        var isSameTime = p.time === newScheduledPlay.time;
+        var bothAreSingletons = p.days.length === 0 && newScheduledPlay.days.length === 0;
+        var selectedDaysOverlap = p.days.filter(d => newScheduledPlay.days.includes(d)).length > 0;
+
+        return isSameTime && (bothAreSingletons || selectedDaysOverlap);
+      }) > -1;
     },
     async schedulerCallback(scheduleItem) {
       await this.playOnDevices(scheduleItem);
@@ -42,7 +59,8 @@ export default {
         scheduleItem.nextPlayDate = this.getNextScheduledTime(scheduleItem);
         this.updateSaveFile();
         this.scheduledJobs.push(schedule.scheduleJob(scheduleItem.nextPlayDate, this.schedulerCallback.bind(null, scheduleItem)));
-        console.log(this.scheduledPlayables);
+      } else {
+        this.removeFromSchedule(scheduleItem);
       }
     },
     getNextScheduledTime(scheduleItem) {
@@ -51,7 +69,7 @@ export default {
       const playDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), playHour, playMinute, 0);
       const dayOfWeekIndices = scheduleItem.days.map(day => ['Su','M', 'Tu', 'W', 'Th', 'F', 'Sa'].indexOf(day));
 
-      while (playDate < now || !dayOfWeekIndices.includes(playDate.getDay()))
+      while (playDate < now || (scheduleItem.days.length > 0 && !dayOfWeekIndices.includes(playDate.getDay())))
         playDate.setDate(playDate.getDate() + 1);
 
       return playDate;

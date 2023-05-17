@@ -1,9 +1,9 @@
 <template>
     <div>
-        <div v-for="schedule in sortedSchedules" :key="schedule.nextPlay" class="callout" data-closable>
-            {{ schedule.playable.name }} @ {{ schedule.time }} ({{ schedule.days.join('-') }})
+        <div v-for="schedule in sortedSchedules" :key="schedule.nextPlayDate" class="callout" data-closable>
+            {{ schedule.playable.name }} @ {{ schedule.time }} ({{ schedule.days.join('-') || "Once" }})
             <p>Next play: {{ schedule.nextPlayDate }}</p>
-            <button class="close-button" type="button" data-close>&times;</button>
+            <button class="close-button" type="button" @click="deleteItem(schedule)" data-close>&times;</button>
         </div>
     </div>
 </template>
@@ -14,17 +14,18 @@ export default {
     props: {
         schedules: Array
     },
+    emits: ['edit', 'delete'],
     computed: {
         sortedSchedules() {
             return [...this.schedules].sort((a, b) => a.nextPlayDate - b.nextPlayDate);
         }
     },
     methods: {
-        delete(scheduleItem) {
-            return scheduleItem;
+        deleteItem(scheduleItem) {
+            this.$emit('delete', scheduleItem);
         },
-        edit(scheduleItem) {
-            return scheduleItem;
+        editItem(scheduleItem) {
+            this.$emit('edit', scheduleItem)
         }
     }
 };
