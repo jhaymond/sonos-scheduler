@@ -1,8 +1,7 @@
 Tasks:
--ability to set shuffle/repeat/volume for scheduled plays
+-ability to set volume for scheduled plays
 -ability to edit and delete scheduled plays
 -prevent user from scheduling multiple plays at the same time
 -nice aesthetics
 -add readme
 -optimize token refresh/access for Spotify
--fix tabs so they work after adding the first scheduledPlay

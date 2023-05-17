@@ -3,17 +3,23 @@
     <legend>Add to your schedule</legend>
     <PlayableSearch ref="searchBar" @input="updateSelection" />
     <div class="grid-x grid-margin-x">
+      <select class="cell" v-model="selectedDevices" multiple>
+        <option v-for="device in devices" :key="device">{{ device }}</option>
+      </select>
+    </div>
+    <div class="grid-x grid-margin-x">
       <input class="cell small-4 large-2" v-model="scheduledTime" type="time"/>
       <div class="cell small-6 large-8 button-group no-gaps">
         <a class="button primary" v-for="day in days" :key="day.initial" :class="{ 'hollow': !day.selected }" @click="day.selected = !day.selected">
           {{ day.initial }}
         </a>
       </div>
-      <select v-model="selectedDevices" multiple>
-        <option v-for="device in devices" :key="device">{{ device }}</option>
-      </select>
+      <div class="cell small-auto">
+        <button class="button primary" :class="{ 'hollow': !shuffle }" @click="shuffle = !shuffle">shuffle</button>
+        <button class="button primary" :class="{ 'hollow': !repeat }" @click="repeat = !repeat">repeat</button>
+      </div>
       <div class="cell small-2 large-2">
-        <input class="button float-right" type="submit" value="Schedule" @click="schedulePlayable"/>
+        <button class="button primary float-right" type="button" @click="schedulePlayable">Schedule</button>
       </div>
     </div>
   </fieldset>
@@ -43,7 +49,9 @@ export default {
         { initial: 'F', selected: false },
         { initial: 'Sa', selected: false },
       ],
-      devices: null
+      devices: null,
+      shuffle: false,
+      repeat: false
     }
   },
   methods: {
@@ -54,7 +62,15 @@ export default {
       const playDays = this.days.filter(d => d.selected).map(d => d.initial);
       const selectedPlayable = JSON.parse(JSON.stringify(this.selectedPlayable)); // copy over so we don't lose it when the form is cleared
 
-      this.$emit("submit", { playable: selectedPlayable, time: this.scheduledTime, days: playDays, devices: [...this.selectedDevices] });
+      this.$emit("submit", {
+        playable: selectedPlayable,
+        time: this.scheduledTime,
+        days: playDays,
+        devices: [...this.selectedDevices],
+        shuffle: false,
+        repeat: false
+      });
+
       this.clearForm();
     },
     clearForm() {

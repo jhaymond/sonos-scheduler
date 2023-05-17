@@ -73,6 +73,9 @@ export default {
           api.sonosApi.get(`/${scheduleItem.devices[i]}/join/${groupCore}`); // todo: remove devices that aren't part of the group
       }
 
+      await api.sonosApi.get(`/${groupCore}/shuffle/${scheduleItem.shuffle ? 'on' : 'off'}`);
+      await api.sonosApi.get(`/${groupCore}/repeat/${scheduleItem.repeat ? 'on' : 'off'}`);
+      
       api.sonosApi.get(`/${groupCore}/spotify/now/${scheduleItem.playable.uri}`);
     }
   },

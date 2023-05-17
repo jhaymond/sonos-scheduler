@@ -9,24 +9,17 @@
         </div>
 
         <div class="dropdown-pane" :class="{ 'is-open': showSuggestions }" id="suggestionsDropdown">
-            <ul class="tabs" data-tabs id="suggestionsTabs">
-                <li v-for="category in Object.keys(searchSuggestionsByCategory)" :key="category" class="tabs-title" :class="{ 'is-active': category === 'tracks' }">
-                    <a :data-tabs-target="category + 'Panel'">{{ category }}</a>
-                </li>
-            </ul>
-            
-            <div class="tabs-content" data-tabs-content="suggestionsTabs">
-                <div v-for="category in Object.keys(searchSuggestionsByCategory)" :key="category" class="tabs-panel" :id="category + 'Panel'" :class="{ 'is-active': category === 'tracks' }">
-                    <ul class="vertical menu" v-show="searchSuggestionsByCategory[category].length > 0">
-                        <li v-for="suggestion in searchSuggestionsByCategory[category]" :key="suggestion.id">
-                            <div @click="updateSelection(suggestion, category)">
-                                <TrackSuggestion :playable="suggestion" v-if="category === 'tracks'" />
-                                <AlbumSuggestion :playable="suggestion" v-if="category === 'albums'" />
-                                <PlaylistSuggestion :playable="suggestion" v-if="category === 'playlists'" />
-                            </div>
-                        </li>
-                    </ul>
-                </div>
+            <div v-for="category in Object.keys(searchSuggestionsByCategory)" :key="category" v-show="searchSuggestionsByCategory[category].length > 0">
+                <h4>{{ category }}</h4>
+                <ul class="vertical menu">
+                    <li v-for="suggestion in searchSuggestionsByCategory[category]" :key="suggestion.id">
+                        <div @click="updateSelection(suggestion, category)">
+                            <TrackSuggestion :playable="suggestion" v-if="category === 'tracks'" />
+                            <AlbumSuggestion :playable="suggestion" v-if="category === 'albums'" />
+                            <PlaylistSuggestion :playable="suggestion" v-if="category === 'playlists'" />
+                        </div>
+                    </li>
+                </ul>
             </div>
         </div>
     </div>
@@ -64,7 +57,7 @@ export default {
             return Object.values(this.searchSuggestionsByCategory).some(v => v.length > 0);
         },
         showSuggestions() {
-            return this.query.length > 0 && this.searchSuggestionsExist && this.selectedPlayable === null //&& this.searchFocused;
+            return this.query.length > 0 && this.searchSuggestionsExist && this.selectedPlayable === null;
         }
     },
     methods: {
@@ -83,7 +76,7 @@ export default {
             if (this.query.length > 0) {
                 if (Date.now() - this.lastQueryTime > 300) { // debounce
                     this.lastQueryTime = Date.now();
-                    var response = await api.spotifyApi.search(this.query, ['track', 'album', 'playlist'], { limit: 10 });
+                    var response = await api.spotifyApi.search(this.query, ['track', 'album', 'playlist'], { limit: 4 });
                     
                     for(var key of Object.keys(response.body)) {
                         this.searchSuggestionsByCategory[key] = response.body[key].items;
@@ -112,5 +105,6 @@ export default {
       width: 100%;
       position: absolute;
       top: 100%;
+      z-index: 999;
     }
 </style>
