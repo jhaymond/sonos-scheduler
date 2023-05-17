@@ -1,24 +1,27 @@
 <template>
   <fieldset class="fieldset">
-    <legend>Add to your schedule</legend>
-    <PlayableSearch ref="searchBar" @input="updateSelection" />
-    <div class="grid-x grid-margin-x">
-      <select class="cell" v-model="selectedDevices" multiple>
-        <option v-for="device in devices" :key="device">{{ device }}</option>
-      </select>
-    </div>
-    <div class="grid-x grid-margin-x">
-      <input class="cell small-4 large-2" v-model="scheduledTime" type="time"/>
-      <div class="cell small-6 large-8 button-group no-gaps">
-        <a class="button primary" v-for="day in days" :key="day.initial" :class="{ 'hollow': !day.selected }" @click="day.selected = !day.selected">
+    <legend class="legend text-center">Add to your schedule</legend>
+    <div class="grid-x grid-margin-x align-middle">
+      <PlayableSearch ref="searchBar" @input="updateSelection" class="cell small-12"/>
+      <div class="cell small-12">
+        <select class="cell small-12" v-model="selectedDevices" multiple>
+          <option @click="selectedDevices = devices">All Devices</option>
+          <option v-for="device in devices" :key="device">{{ device }}</option>
+        </select>
+      </div>
+      <div class="cell small-12 medium-6 large-4">
+        <input class="cell small-12" v-model="scheduledTime" type="time"/>
+      </div>
+      <div class="cell small-12 medium-8 large-5 button-group align-middle">
+        <button class="button primary" v-for="day in days" :key="day.initial" :class="{ 'hollow': !day.selected }" @click="day.selected = !day.selected">
           {{ day.initial }}
-        </a>
+        </button>
       </div>
-      <div class="cell small-auto">
-        <button class="button primary" :class="{ 'hollow': !shuffle }" @click="shuffle = !shuffle">shuffle</button>
-        <button class="button primary" :class="{ 'hollow': !repeat }" @click="repeat = !repeat">repeat</button>
+      <div class="cell small-12 medium-4 large-3 button-group align-right">
+        <button class="button primary" :class="{ 'hollow': !shuffle }" @click="shuffle = !shuffle">Shuffle</button>
+        <button class="button primary" :class="{ 'hollow': !repeat }" @click="repeat = !repeat">Repeat</button>
       </div>
-      <div class="cell small-2 large-2">
+      <div class="cell small-12">
         <button class="button primary float-right" type="button" @click="schedulePlayable">Schedule</button>
       </div>
     </div>
@@ -76,6 +79,8 @@ export default {
     clearForm() {
       this.scheduledTime = null;
       this.selectedDevices = [];
+      this.shuffle = false;
+      this.repeat = false;
       this.days = [
         { initial: 'Su', selected: false },
         { initial: 'M', selected: false },
