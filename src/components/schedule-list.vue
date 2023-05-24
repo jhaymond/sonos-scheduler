@@ -5,7 +5,7 @@
                 <PlayableDisplay class="cell small-8" :playable="scheduleItem.playable" :type="scheduleItem.playable.category"/>
                 <div class="cell small-4">
                     <div class="text-center">
-                        {{ scheduleItem.startTime + scheduleItem.endTime ? '-' + scheduleItem.endTime : '' }}
+                        {{ scheduleItem.startTime + (scheduleItem.endTime ? '-' + scheduleItem.endTime : '') }}
                         <br/>
                         {{ scheduleItem.days.join(', ') || "Once" }}
                     </div>
@@ -23,7 +23,7 @@ import PlayableDisplay from './playable-display.vue';
 export default {
     name: 'ScheduleList',
     components: {
-    PlayableDisplay
+        PlayableDisplay
     },
     props: {
         scheduleItems: Array

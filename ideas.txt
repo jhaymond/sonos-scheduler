@@ -1,5 +1,4 @@
 Tasks:
--ability to designate an end time for scheduled plays
 -ability to edit scheduled plays
 -nice aesthetics
 -add readme

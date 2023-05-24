@@ -123,8 +123,9 @@ export default {
       const scheduleItems = response.data;
 
       return scheduleItems.findIndex(p => {
-        var timesOverlap = (p.startTime >= this.startTime && (!this.endTime || p.startTime < this.endTime))
-          || (this.startTime >= p.startTime && (!p.endTime || this.startTime < p.endTime));
+        var timesOverlap = p.startTime === this.startTime ||
+          (this.startTime > p.startTime && this.startTime < p.endTime) ||
+          (p.startTime > this.startTime && p.startTime < this.endTime);
         var bothAreSingletons = p.days.length === 0 && this.selectedDays.length === 0;
         var selectedDaysOverlap = p.days.filter(d => this.selectedDays.includes(d)).length > 0;
         var selectedDevicesOverlap = p.devices.filter(d => this.selectedDevices.map(e => e.name).includes(d.name)).length > 0;

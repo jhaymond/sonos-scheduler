@@ -30,10 +30,8 @@ fs.readFile("../settings.json", "utf8", (err, jsonString) => {
       clientSecret: settings.spotifyClientSecret
     });
 
-    for (var scheduleItem of settings.schedule) {
-      var nextPlayDate = getNextScheduledTime(scheduleItem);
-      scheduledJobs[nextPlayDate.toString()] = schedule.scheduleJob(nextPlayDate, schedulerCallback.bind(null, scheduleItem));
-    }
+    for (var scheduleItem of settings.schedule)
+      scheduleNextJobs(scheduleItem);
     
     console.log("Server ready");
   } catch (err) {
@@ -51,51 +49,84 @@ function updateSaveFile() {
   });
 }
 
-function getNextScheduledTime(scheduleItem) {
-  const [playHour, playMinute] = scheduleItem.startTime.split(':').map(Number);
+// methods for finding schedule time
+function getNextStartTime(days, time) {
+  const [playHour, playMinute] = time.split(':').map(Number);
   const now = new Date();
   const playDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), playHour, playMinute, 0);
-  const dayOfWeekIndices = scheduleItem.days.map(day => ['Su','M', 'Tu', 'W', 'Th', 'F', 'Sa'].indexOf(day));
+  const dayOfWeekIndices = days.map(day => ['Su','M', 'Tu', 'W', 'Th', 'F', 'Sa'].indexOf(day));
 
-  while (playDate < now || (scheduleItem.days.length > 0 && !dayOfWeekIndices.includes(playDate.getDay())))
+  while (playDate < now || (days.length > 0 && !dayOfWeekIndices.includes(playDate.getDay())))
     playDate.setDate(playDate.getDate() + 1);
 
   return playDate;
 }
 
+function getNextStopTime(nextPlayDate, endTime) {
+  const [pauseHour, pauseMinute] = endTime.split(':').map(Number);
+  const now = new Date();
+  const pauseDate = new Date(nextPlayDate.getFullYear(), nextPlayDate.getMonth(), nextPlayDate.getDate(), pauseHour, pauseMinute, 0);
+
+  if (pauseDate < now)
+    pauseDate.setDate(pauseDate.getDate() + 1);
+
+  return pauseDate;
+}
+
+// methods for modifying the schedule
 function addToSchedule(newScheduleItem) {
   // set up the job
-  var nextPlayDate = getNextScheduledTime(newScheduleItem);
-  scheduledJobs[nextPlayDate.toString()] = schedule.scheduleJob(nextPlayDate, schedulerCallback.bind(null, newScheduleItem));
+  scheduleNextJobs(newScheduleItem);
 
   // save the new item to the schedule data
   settings.schedule.push(newScheduleItem);
   updateSaveFile();
 }
 
+function scheduleNextJobs(newScheduleItem) {
+  var nextPlayDate = getNextStartTime(newScheduleItem.days, newScheduleItem.startTime);
+  scheduledJobs[nextPlayDate.toString()] = { start: schedule.scheduleJob(nextPlayDate, schedulerPlayCallback.bind(null, newScheduleItem)) };
+
+  if (newScheduleItem.endTime) {
+    var nextPauseDate = getNextStopTime(nextPlayDate, newScheduleItem.endTime);
+    scheduledJobs[nextPlayDate.toString()].end = schedule.scheduleJob(nextPauseDate, schedulerPauseCallback.bind(null, newScheduleItem));
+  }
+}
+
 function removeFromSchedule(scheduleItem) {
   // cancel the job
-  var nextPlayDate = getNextScheduledTime(scheduleItem);
-  if (scheduledJobs[nextPlayDate.toString()])
-    scheduledJobs[nextPlayDate.toString()].cancel();
+  var scheduledJob = scheduledJobs[getNextStartTime(scheduleItem.days, scheduleItem.startTime).toString()];
+  if (scheduledJob) {
+    scheduledJob.start.cancel();
+    if (scheduledJob.end)
+      scheduledJob.end.cancel();
+  }
 
   // remove the item from the schedule data
   settings.schedule.splice(settings.schedule.findIndex(p => p.startTime === scheduleItem.startTime && p.days === scheduleItem.days), 1);
   updateSaveFile();
 }
 
-async function schedulerCallback(scheduleItem) {
+// scheduler callbacks and supporting functions
+async function schedulerPlayCallback(scheduleItem) {
   await playOnDevices(scheduleItem);
 
-  if (scheduleItem.days.length > 0) {
-    // set up the next job
-    var nextPlayDate = getNextScheduledTime(scheduleItem);
-    scheduledJobs[nextPlayDate.toString()] = schedule.scheduleJob(scheduleItem.nextPlayDate, schedulerCallback.bind(null, scheduleItem));
-  } else {
+  if (scheduleItem.days.length > 0)
+    scheduleNextJobs(scheduleItem);
+  else
     removeFromSchedule(scheduleItem);
-  }
 
   updateSaveFile();
+}
+
+async function schedulerPauseCallback(scheduleItem) {
+  for (var device of scheduleItem.devices) {
+    const response = await sonosApi.get(`/${device.name}/state`);
+    if (response.data.playbackState === 'PLAYING') {
+      await new Promise(resolve => setTimeout(resolve, (response.data.currentTrack.duration - response.data.elapsedTime) * 1000));
+      await sonosApi.get(`/${device.name}/pause`);
+    }
+  }
 }
 
 async function playOnDevices(scheduleItem) {
@@ -107,8 +138,8 @@ async function playOnDevices(scheduleItem) {
 
   // set up the play group
   for (var device of scheduleItem.devices.filter(d => d.name !== groupCore.name)) {
-    console.log(`${device.name}/join/${groupCore.name}`);
-    await sonosApi.get(`${device.name}/join/${groupCore.name}`);
+    console.log(`/${device.name}/join/${groupCore.name}`);
+    await sonosApi.get(`/${device.name}/join/${groupCore.name}`);
   }
 
   // finish settings and play
@@ -129,13 +160,13 @@ async function prepareDevice(device) {
   if (response.data.trackNo > 0) {
     if (response.data.playbackState === 'PLAYING')
       await new Promise(resolve => setTimeout(resolve, (response.data.currentTrack.duration - response.data.elapsedTime) * 1000));
-    console.log(`${device.name}/clearqueue`);
-    await sonosApi.get(`${device.name}/clearqueue`);
+    console.log(`/${device.name}/clearqueue`);
+    await sonosApi.get(`/${device.name}/clearqueue`);
   }
 
   // separate the device from its previous group to prepare it for its new grouping
-  console.log(`${device.name}/leave`);
-  await sonosApi.get(`${device.name}/leave`);
+  console.log(`/${device.name}/leave`);
+  await sonosApi.get(`/${device.name}/leave`);
 
   // set the device volume
   console.log(`/${device.name}/volume/${device.volume}`);
@@ -143,6 +174,9 @@ async function prepareDevice(device) {
 
   return device;
 }
+
+
+// API ENDPOINTS
 
 // SPOTIFY ACCESS CODE
 app.get('/code', async (req, res) => {
