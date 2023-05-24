@@ -9,8 +9,7 @@ export default {
     name: 'PlayableDisplay',
     props: {
         playable: Object,
-        type: String,
-
+        type: String
     },
     computed: {
         imageSrc() {
@@ -46,7 +45,7 @@ export default {
 
 <style>
 .playable-thumbnail {
-    height: 40px;
-    width: 40px;
+    height: 50px;
+    width: 50px;
 }
 </style>

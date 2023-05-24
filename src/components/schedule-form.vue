@@ -1,47 +1,57 @@
 <template>
-  <fieldset class="fieldset">
-    <legend class="legend text-center">Add to your schedule</legend>
-    <div class="grid-x grid-margin-x align-middle">
-      <PlayableSearch ref="searchBar" @input="updateSelection" class="cell small-12"/>
-      <div class="cell small-12">
-        <select class="cell small-12" v-model="selectedDevices" multiple>
-          <option @click="selectedDevices = devices">All Devices</option>
-          <option v-for="device in devices" :key="device">{{ device }}</option>
-        </select>
-      </div>
-      <div class="cell small-12 medium-6 large-4">
-        <input class="cell small-12" v-model="scheduledTime" type="time"/>
-      </div>
-      <div class="cell small-12 medium-8 large-5 button-group align-middle">
-        <button class="button primary" v-for="day in days" :key="day.initial" :class="{ 'hollow': !day.selected }" @click="day.selected = !day.selected">
-          {{ day.initial }}
-        </button>
-      </div>
-      <div class="cell small-12 medium-4 large-3 button-group align-right">
-        <button class="button primary" :class="{ 'hollow': !shuffle }" @click="shuffle = !shuffle">Shuffle</button>
-        <button class="button primary" :class="{ 'hollow': !repeat }" @click="repeat = !repeat">Repeat</button>
-      </div>
-      <div class="cell small-12">
-        <button class="button primary float-right" type="button" @click="schedulePlayable">Schedule</button>
-      </div>
+<fieldset class="fieldset">
+  <legend class="text-center">Add to your schedule</legend>
+  <div class="grid-x grid-margin-x align-bottom">
+    <PlayableSearch ref="searchBar" @input="updateSelectedPlayable" class="cell small-12"/>
+    <DeviceSelector ref="devices" @input="updateSelectedDevices" class="cell small-12"/>
+    <div class="cell small-6 medium-3 large-2">
+      <label for="startTime">
+        Start
+        <input id="startTime" v-model="startTime" type="time"/>
+      </label>
     </div>
-  </fieldset>
+    <div class="cell small-6 medium-3 large-2 align-middle">
+      <label for="endTime">
+        End (optional)
+        <input id="endTime" v-model="endTime" type="time"/>
+      </label>
+    </div>
+    <div class="cell small-12 medium-8 large-5 button-group">
+      <button class="button primary" type="button" v-for="day in days" :key="day.initial" :class="{ 'hollow': !day.selected }" @click="day.selected = !day.selected">
+        {{ day.initial }}
+      </button>
+    </div>
+    <div class="cell small-12 medium-4 large-3 button-group align-right">
+      <button class="button primary" type="button" :class="{ 'hollow': !shuffle }" @click="shuffle = !shuffle"><i class="fas fa-shuffle"></i></button>
+      <button class="button primary" type="button" :class="{ 'hollow': !repeat }" @click="repeat = !repeat"><i class="fas fa-repeat"></i></button>
+    </div>
+    <div class="cell small-8">
+      <p class="text-right text-error">{{ errorMessage }}</p>
+    </div>
+    <div class="cell small-4">
+      <button class="button primary float-right" type="button" @click="addToSchedule()">Schedule</button>
+    </div>
+  </div>
+</fieldset>
 </template>
 
 <script>
 import PlayableSearch from './playable-search.vue';
+import DeviceSelector from './device-selector.vue';
 import api from '../scripts/api.js';
 
 export default {
   name: 'ScheduleForm',
-  emits: ['submit'],
+  emits: ['updateSchedule'],
   components: {
-    PlayableSearch
+    PlayableSearch,
+    DeviceSelector
   },
   data() {
     return {
       selectedPlayable: null,
-      scheduledTime: null,
+      startTime: null,
+      endTime: null,
       selectedDevices: [],
       days: [
         { initial: 'Su', selected: false },
@@ -54,30 +64,77 @@ export default {
       ],
       devices: null,
       shuffle: false,
-      repeat: false
+      repeat: false,
+      errorMessage: ''
+    }
+  },
+  computed: {
+    selectedDays() {
+      return this.days.filter(d => d.selected).map(d => d.initial);
     }
   },
   methods: {
-    updateSelection(newSelection) {
+    updateSelectedPlayable(newSelection) {
       this.selectedPlayable = newSelection;
     },
-    schedulePlayable() {
-      const playDays = this.days.filter(d => d.selected).map(d => d.initial);
-      const selectedPlayable = JSON.parse(JSON.stringify(this.selectedPlayable)); // copy over so we don't lose it when the form is cleared
+    updateSelectedDevices(newSelection) {
+      this.selectedDevices = newSelection;
+    },
+    async addToSchedule() {
+      if (await this.validateForm()) {
+        await api.localApi.post('/schedule', {
+          playable: this.selectedPlayable,
+          startTime: this.startTime,
+          endTime: this.endTime,
+          days: this.selectedDays,
+          devices: this.selectedDevices,
+          shuffle: this.shuffle,
+          repeat: this.repeat
+        });
+        this.$emit('updateSchedule');
+        this.clearForm();
+      }
+    },
+    async validateForm() {
+      var formIsValid = true;
 
-      this.$emit("submit", {
-        playable: selectedPlayable,
-        time: this.scheduledTime,
-        days: playDays,
-        devices: [...this.selectedDevices],
-        shuffle: false,
-        repeat: false
-      });
+      this.errorMessage = '';
+      if (!this.selectedPlayable) {
+        formIsValid = false;
+        this.errorMessage += 'No music selected. '
+      }
+      if (!this.startTime) {
+        formIsValid = false;
+        this.errorMessage += 'No time specified. '
+      }
+      if (this.selectedDevices.length === 0) {
+        formIsValid = false;
+        this.errorMessage += 'No devices selected. '
+      }
+      if (await this.isOverlap()) {
+        formIsValid = false;
+        this.errorMessage += 'There is already music scheduled for the given time and devices.'
+      }
 
-      this.clearForm();
+      return formIsValid;
+    },
+    async isOverlap() {
+      const response = await api.localApi.get('/schedule');
+      const scheduleItems = response.data;
+
+      return scheduleItems.findIndex(p => {
+        var timesOverlap = (p.startTime >= this.startTime && (!this.endTime || p.startTime < this.endTime))
+          || (this.startTime >= p.startTime && (!p.endTime || this.startTime < p.endTime));
+        var bothAreSingletons = p.days.length === 0 && this.selectedDays.length === 0;
+        var selectedDaysOverlap = p.days.filter(d => this.selectedDays.includes(d)).length > 0;
+        var selectedDevicesOverlap = p.devices.filter(d => this.selectedDevices.map(e => e.name).includes(d.name)).length > 0;
+
+        return timesOverlap && (bothAreSingletons || selectedDaysOverlap) && selectedDevicesOverlap;
+      }) > -1;
     },
     clearForm() {
-      this.scheduledTime = null;
+      this.startTime = null;
+      this.endTime = null;
       this.selectedDevices = [];
       this.shuffle = false;
       this.repeat = false;
@@ -91,20 +148,14 @@ export default {
         { initial: 'Sa', selected: false },
       ];
       this.$refs.searchBar.clear();
-    },
-    async getDevices() {
-      const response = await api.sonosApi.get('/zones');
-      const data = await response.data;
-      return data.flatMap(zone => zone.members.map(member => member.roomName));
+      this.$refs.devices.clear();
     }
-  },
-  async mounted() {
-    this.devices = await this.getDevices();
   }
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-
+<style>
+.text-error {
+  color: red;
+}
 </style>
