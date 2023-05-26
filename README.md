@@ -22,7 +22,8 @@ cd server
 npm install
 node index.js
 ```
-If this fails, make sure you don't already have a process operating on port 3000. You can change the port the server operates on in server/index.js.
+If this fails, make sure you don't already have a process operating on port 3000. You can change the port the server operates on in ```server/index.js```.
+
 3. Set up the frontend:
 ```
 (Starting from the project root)
