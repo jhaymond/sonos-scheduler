@@ -1,4 +1,3 @@
 Tasks:
 -nice aesthetics
--add readme
 -optimize token refresh/access for Spotify
