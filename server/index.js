@@ -103,8 +103,13 @@ function removeFromSchedule(scheduleItem) {
   }
 
   // remove the item from the schedule data
-  settings.schedule.splice(settings.schedule.findIndex(p => p.startTime === scheduleItem.startTime && p.days === scheduleItem.days), 1);
+  settings.schedule.splice(settings.schedule.findIndex(p => p.startTime === scheduleItem.startTime && JSON.stringify(p.days) === JSON.stringify(scheduleItem.days)), 1);
   updateSaveFile();
+}
+
+function updateSchedule(newScheduleItem, oldScheduleItem) {
+  removeFromSchedule(oldScheduleItem);
+  addToSchedule(newScheduleItem);
 }
 
 // scheduler callbacks and supporting functions
@@ -216,12 +221,17 @@ app.post('/schedule', async (req, res) => {
 });
 
 app.put('/schedule', async (req, res) => {
-
+  try {
+    updateSchedule(req.body.new, req.body.old);
+    res.sendStatus(200);
+  } catch(error) {
+    console.error('Error putting data:', error);
+    res.sendStatus(500);
+  }
 });
 
 app.delete('/schedule', async (req, res) => {
   try {
-    console.log(req);
     removeFromSchedule(req.body);
     res.sendStatus(200);
   } catch (error) {

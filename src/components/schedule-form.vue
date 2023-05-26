@@ -1,9 +1,10 @@
 <template>
 <fieldset class="fieldset">
-  <legend class="text-center">Add to your schedule</legend>
+  <legend v-if="!edit" class="text-center">Add to your schedule</legend>
+  <legend v-if="edit" class="text-center">Edit your schedule</legend>
   <div class="grid-x grid-margin-x align-bottom">
     <PlayableSearch ref="searchBar" @input="updateSelectedPlayable" class="cell small-12"/>
-    <DeviceSelector ref="devices" @input="updateSelectedDevices" class="cell small-12"/>
+    <DeviceSelector ref="deviceSelector" :preselectedDevices="this.preselectedDevices" @input="updateSelectedDevices" class="cell small-12"/>
     <div class="cell small-6 medium-3 large-2">
       <label for="startTime">
         Start
@@ -29,7 +30,7 @@
       <p class="text-right text-error">{{ errorMessage }}</p>
     </div>
     <div class="cell small-4">
-      <button class="button primary float-right" type="button" @click="addToSchedule()">Schedule</button>
+      <button class="button primary float-right" type="button" @click="submitItem()">Schedule</button>
     </div>
   </div>
 </fieldset>
@@ -42,6 +43,9 @@ import api from '../scripts/api.js';
 
 export default {
   name: 'ScheduleForm',
+  props: {
+    edit: Object
+  },
   emits: ['updateSchedule'],
   components: {
     PlayableSearch,
@@ -52,6 +56,7 @@ export default {
       selectedPlayable: null,
       startTime: null,
       endTime: null,
+      preselectedDevices: [],
       selectedDevices: [],
       days: [
         { initial: 'Su', selected: false },
@@ -80,9 +85,9 @@ export default {
     updateSelectedDevices(newSelection) {
       this.selectedDevices = newSelection;
     },
-    async addToSchedule() {
+    async submitItem() {
       if (await this.validateForm()) {
-        await api.localApi.post('/schedule', {
+        const newScheduleItem = {
           playable: this.selectedPlayable,
           startTime: this.startTime,
           endTime: this.endTime,
@@ -90,7 +95,13 @@ export default {
           devices: this.selectedDevices,
           shuffle: this.shuffle,
           repeat: this.repeat
-        });
+        };
+
+        if (this.edit)
+          await api.localApi.put('/schedule', { new: newScheduleItem, old: this.edit });
+        else
+          await api.localApi.post('/schedule', newScheduleItem);
+
         this.$emit('updateSchedule');
         this.clearForm();
       }
@@ -130,13 +141,12 @@ export default {
         var selectedDaysOverlap = p.days.filter(d => this.selectedDays.includes(d)).length > 0;
         var selectedDevicesOverlap = p.devices.filter(d => this.selectedDevices.map(e => e.name).includes(d.name)).length > 0;
 
-        return timesOverlap && (bothAreSingletons || selectedDaysOverlap) && selectedDevicesOverlap;
+        return !this.edit && timesOverlap && (bothAreSingletons || selectedDaysOverlap) && selectedDevicesOverlap;
       }) > -1;
     },
     clearForm() {
       this.startTime = null;
       this.endTime = null;
-      this.selectedDevices = [];
       this.shuffle = false;
       this.repeat = false;
       this.days = [
@@ -149,7 +159,25 @@ export default {
         { initial: 'Sa', selected: false },
       ];
       this.$refs.searchBar.clear();
-      this.$refs.devices.clear();
+      this.$refs.deviceSelector.clear();
+    }
+  },
+  mounted() {
+    if (this.edit) {
+      this.startTime = this.edit.startTime;
+      this.endTime = this.edit.endTime;
+      this.shuffle = this.edit.shuffle;
+      this.repeat = this.edit.repeat;
+      this.days.forEach(d => {
+        if (this.edit.days.includes(d.initial)) {
+          d.selected = true;
+        } else {
+          d.selected = false;
+        }
+      });
+      this.selectedPlayable = this.edit.playable;
+      this.$refs.searchBar.selectedPlayable = this.edit.playable;
+      this.preselectedDevices = this.edit.devices;
     }
   }
 }

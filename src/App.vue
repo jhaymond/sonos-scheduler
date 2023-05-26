@@ -1,9 +1,9 @@
 <template>
-  <div class="grid-x grid-margin-x">
-    <ScheduleForm class="cell small-6 small-offset-3" @updateSchedule="refreshFromSource()"/>
+  <div class="grid-x grid-margin-x align-center">
+    <ScheduleForm class="cell small-6" @updateSchedule="refreshFromSource()"/>
   </div>
-  <div class="grid-x grid-margin-x">
-    <ScheduleList :scheduleItems="scheduleItems" class="cell small-6 small-offset-3" @updateSchedule="refreshFromSource()"/>
+  <div class="grid-x grid-margin-x align-center">
+    <ScheduleList :scheduleItems="scheduleItems" class="cell small-6" @updateSchedule="refreshFromSource()"/>
   </div>
 </template>
 

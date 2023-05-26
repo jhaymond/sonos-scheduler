@@ -11,7 +11,7 @@
                             &nbsp;
                             <label class="middle" :for="device.name">{{ device.name }}</label>
                         </div>
-                        <div class="cell small-4" v-show="device.isSelected">
+                        <div class="cell small-4 volume" v-show="device.isSelected">
                             <i class="fa-solid fa-volume-high"></i>
                             &nbsp;
                             <input type="range" min="1" max="100" step="1" v-model="device.volume" @change="updateDevices"/>
@@ -31,6 +31,9 @@ import api from '../scripts/api.js';
 
 export default {
     name: 'DeviceSelector',
+    props: {
+        preselectedDevices: Array
+    },
     emits: ['input'],
     data() {
         return {
@@ -51,7 +54,7 @@ export default {
                 return {
                     name: member.roomName,
                     volume: 30,
-                    isSelected: true
+                    isSelected: !this.preselectedDevices.length || this.preselectedDevices.some(d => d.name === member.roomName)
                 }
             }));
         },
@@ -64,8 +67,7 @@ export default {
         }
     },
     async mounted() {
-        this.devices = await this.getDevices();
-        this.updateDevices();
+        this.clear();
     }
 }
 </script>
@@ -73,5 +75,9 @@ export default {
 <style>
 .accordion-item:is(.is-active) .accordion-content {
     display:inherit;
+}
+
+.volume {
+    padding-top: 7px;
 }
 </style>

@@ -1,5 +1,4 @@
 Tasks:
--ability to edit scheduled plays
 -nice aesthetics
 -add readme
 -optimize token refresh/access for Spotify
